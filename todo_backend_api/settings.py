@@ -9,9 +9,13 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from datetime import timedelta
 from pathlib import Path
+import environ
+
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,9 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = (
-    "django-insecure-)5b@3jrj9ikqd)yh$90g!zf!8b8hdzd(=&ht@67^^_#gb*7g3$"
-)
+SECRET_KEY = "django-insecure-)5b@3jrj9ikqd)yh$90g!zf!8b8hdzd(=&ht@67^^_#gb*7g3$"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -150,3 +152,11 @@ SWAGGER_SETTINGS = {
         },
     },
 }
+
+
+EMAIL_BACKEND = env("EMAIL_BACKEND")
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "").lower() == "true"
+EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")

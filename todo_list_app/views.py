@@ -10,7 +10,9 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.utils import timezone
+from django.http import Http404
 from .serializers import UserSerializer, TodoTaskSerializer
+from rest_framework import serializers
 
 
 class RegisterUser(APIView):
@@ -82,17 +84,12 @@ class LoginView(APIView):
             )
 
         user = authenticate(username=username, password=password)
-        user.last_login = timezone.now()
-        user.save()
 
         if not user:
             return Response(
                 {"error": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        if user is not None:
-            user.last_login = timezone.now()
-            user.save()
 
         try:
             refresh = RefreshToken.for_user(user)
@@ -114,6 +111,32 @@ class TodoTaskViewSet(viewsets.ModelViewSet):
     queryset = TodoTask.objects.all()
     serializer_class = TodoTaskSerializer
     permission_classes = [permissions.IsAuthenticated]
+    allowed_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
 
     def perform_create(self, serializer):
+        task_name = serializer.validated_data["name"]
+
+        existing_task = TodoTask.objects.filter(name=task_name).first()
+        if existing_task:
+            raise serializers.ValidationError(
+                "A task with the same name already exists."
+            )
+
         serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(
+                {"message": "Task deleted successfully"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        except Http404:
+            return Response(
+                {"error": "Task not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
